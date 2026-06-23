@@ -158,3 +158,24 @@ aside {
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
 }
+
+/* Narrow screens: stack the map above the controls instead of side-by-side. */
+@media (max-width: 640px) {
+  body { height: 100dvh; }
+  header { padding: 10px 14px; gap: 6px 14px; }
+  header h1 { font-size: 16px; }
+  .target-banner { font-size: 15px; }
+  .score { font-size: 14px; }
+
+  main { flex-direction: column; }
+  #map-wrap { flex: 0 0 46vh; }
+  aside {
+    width: 100%;
+    flex: 1 1 auto;
+    border-left: none;
+    border-top: 1px solid #243150;
+    padding: 14px;
+    /* room for iOS Safari bottom bar */
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+}
