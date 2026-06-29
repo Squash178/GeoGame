@@ -10,7 +10,11 @@
 <header>
   <h1>🌍 GeoGame</h1>
   <div class="target-banner">Name the neighbors of <b id="target-name">…</b></div>
-  <div class="score" id="score"></div>
+  <div class="stats">
+    <span class="stat streak" id="streak"></span>
+    <span class="stat mistakes" id="mistakes"></span>
+    <span class="stat score" id="score"></span>
+  </div>
 </header>
 <main>
   <div id="map-wrap"></div>
@@ -19,10 +23,11 @@
       <input id="guess" type="text" autocomplete="off" placeholder="Type a country name…">
       <div class="suggestions" id="suggestions"></div>
     </div>
+    <label class="toggle-row"><input type="checkbox" id="hide-map-toggle"> Hide map (hard mode)</label>
     <button class="btn secondary" id="reveal-btn">Give up / Reveal</button>
     <button class="btn" id="next-btn" style="display:none">Next country &rarr;</button>
     <ul class="found-list" id="found-list"></ul>
-    <div class="hint">Type a name and pick from suggestions (substring search &mdash; "lux" finds Luxembourg). Green = found, red = missed. The map auto-frames the target and its neighbors.</div>
+    <div class="hint">Type a name and pick from suggestions (substring search &mdash; "lux" finds Luxembourg). Green = found, red = missed. The map auto-frames the target and its neighbors. Hide the map for a tougher challenge &mdash; it reveals once the round ends. Finish a round with no wrong guesses to build your streak.</div>
   </aside>
 </main>
 <script src="map.js"></script>

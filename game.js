@@ -11,10 +11,28 @@
   const sugg = document.getElementById("suggestions");
   const foundList = document.getElementById("found-list");
   const scoreEl = document.getElementById("score");
+  const streakEl = document.getElementById("streak");
+  const mistakesEl = document.getElementById("mistakes");
+  const hideMapToggle = document.getElementById("hide-map-toggle");
   const targetEl = document.getElementById("target-name");
   const revealBtn = document.getElementById("reveal-btn");
   const nextBtn = document.getElementById("next-btn");
   const aside = document.querySelector("aside");
+
+  // Streak = consecutive rounds finished with zero wrong guesses (no give-ups).
+  // Persisted so it survives reloads; we also keep an all-time best.
+  let streak = 0, bestStreak = 0;
+  try {
+    streak = parseInt(localStorage.getItem("geogame-streak"), 10) || 0;
+    bestStreak = parseInt(localStorage.getItem("geogame-best-streak"), 10) || 0;
+  } catch (e) { /* localStorage unavailable */ }
+
+  function saveStreak() {
+    try {
+      localStorage.setItem("geogame-streak", String(streak));
+      localStorage.setItem("geogame-best-streak", String(bestStreak));
+    } catch (e) { /* ignore */ }
+  }
 
   // Normalize a string for forgiving matching: lowercase, strip accents/punct.
   const norm = (s) =>
@@ -38,7 +56,7 @@
     .filter((c) => renderable.has(c))
     .map((c) => ({ code: c, name: COUNTRIES[c].name, key: norm(COUNTRIES[c].name) }));
 
-  let state = null; // { code, neighbors:Set, found:Set, over:bool }
+  let state = null; // { code, neighbors:[], found:Set, over:bool, wrong:int }
 
   function gEl(code) { return svg.getElementById(code); }
 
@@ -164,6 +182,20 @@
     });
   }
 
+  function renderStats() {
+    const wrong = state ? state.wrong : 0;
+    streakEl.innerHTML = `🔥 <b>${streak}</b> streak` +
+      (bestStreak ? ` · best ${bestStreak}` : "");
+    mistakesEl.innerHTML = `✗ <b>${wrong}</b> wrong`;
+  }
+
+  // Hard mode: keep the map concealed while a round is in progress, then
+  // reveal it once the round is over so the answer is still visible.
+  function applyMapVisibility() {
+    const hide = hideMapToggle.checked && !(state && state.over);
+    mapWrap.classList.toggle("map-hidden", hide);
+  }
+
   function newRound() {
     const code = targets[Math.floor(Math.random() * targets.length)];
     state = {
@@ -171,6 +203,7 @@
       neighbors: COUNTRIES[code].neighbors.filter((n) => renderable.has(n)),
       found: new Set(),
       over: false,
+      wrong: 0,
     };
     targetEl.textContent = COUNTRIES[code].name;
     input.value = "";
@@ -181,6 +214,8 @@
     paint();
     frameRegion();
     renderSidebar();
+    renderStats();
+    applyMapVisibility();
     input.focus();
   }
 
@@ -195,21 +230,36 @@
       renderSidebar();
       if (state.found.size === state.neighbors.length) endRound(false);
     } else {
-      // wrong / duplicate -> shake feedback
+      // wrong / duplicate -> count the miss and shake feedback
+      state.wrong++;
+      renderStats();
       aside.classList.add("flash-wrong");
       setTimeout(() => aside.classList.remove("flash-wrong"), 320);
     }
   }
 
-  function endRound(/* gaveUp */) {
+  function endRound(gaveUp) {
     state.over = true;
     input.disabled = true;
     revealBtn.disabled = true;
     nextBtn.style.display = "block";
+
+    // A "perfect" round: every neighbor found with no wrong guesses and no
+    // give-up. Perfect rounds extend the streak; anything else resets it.
+    if (!gaveUp && state.wrong === 0) {
+      streak++;
+      if (streak > bestStreak) bestStreak = streak;
+    } else {
+      streak = 0;
+    }
+    saveStreak();
+
     closeSuggestions();
     paint();
+    applyMapVisibility();
     placeLabels();
     renderSidebar();
+    renderStats();
   }
 
   // ---- Autocomplete (substring match on normalized names) ----
@@ -248,6 +298,11 @@
 
   revealBtn.addEventListener("click", () => endRound(true));
   nextBtn.addEventListener("click", newRound);
+  hideMapToggle.addEventListener("change", () => {
+    applyMapVisibility();
+    // Re-place labels: showing the map again needs valid screen coords.
+    if (state) placeLabels();
+  });
   window.addEventListener("resize", () => { if (state) frameRegion(); });
 
   newRound();
