@@ -164,6 +164,20 @@ aside {
 .btn.secondary { background: #2a3a5e; color: var(--ink); }
 .btn:active { transform: translateY(1px); }
 
+/* Keep "Give up / Reveal" pinned to the bottom and de-emphasized so it's
+   well clear of the input/suggestions and not tapped by accident. */
+.btn.give-up {
+  margin-top: auto;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid #2a3a5e;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 8px 14px;
+}
+.btn.give-up:hover { color: var(--ink); border-color: #3a4d78; }
+.btn.give-up:disabled { opacity: .4; }
+
 .toggle-row {
   display: flex;
   align-items: center;
