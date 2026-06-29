@@ -84,22 +84,13 @@ main {
 .map-label.found  { color: var(--found); }
 .map-label.missed { color: var(--missed); }
 
-/* Hard mode: conceal the map (and its labels) until the round ends. */
-#map-wrap.map-hidden #worldmap { visibility: hidden; }
-#map-wrap.map-hidden .map-label { display: none; }
-#map-wrap.map-hidden::after {
-  content: "🙈 Map hidden — hard mode";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 20px;
-  color: var(--muted);
-  font-size: 16px;
-  font-weight: 600;
-  background: var(--bg);
+/* Hard mode: collapse the map area entirely until the round ends, so the
+   controls rise to the top (especially helpful on mobile). */
+body.map-hidden #map-wrap { display: none; }
+body.map-hidden aside {
+  width: 100%;
+  flex: 1;
+  border-left: none;
 }
 
 aside {

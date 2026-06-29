@@ -87,6 +87,9 @@
   // Frame the map on target + neighbors with padding. Clamp against runaway
   // boxes (e.g. countries with far-flung territories) by capping the size.
   function frameRegion() {
+    // Bail while the map is collapsed (hard mode): it has no layout, so
+    // getBBox/dimensions are meaningless. It gets reframed when revealed.
+    if (!mapWrap.clientWidth || !mapWrap.clientHeight) return;
     const codes = [state.code, ...state.neighbors];
     let box = regionBBox(codes);
     if (!box) { setViewBox(FULL); return; }
@@ -119,6 +122,7 @@
   // Place HTML labels over countries, converting SVG coords -> screen coords.
   function placeLabels() {
     document.querySelectorAll(".map-label").forEach((l) => l.remove());
+    if (!mapWrap.clientWidth || !mapWrap.clientHeight) return; // map collapsed
     const show = [{ code: state.code, cls: "target" }];
     state.neighbors.forEach((n) => {
       if (state.found.has(n)) show.push({ code: n, cls: "found" });
@@ -189,11 +193,12 @@
     mistakesEl.innerHTML = `✗ <b>${wrong}</b> wrong`;
   }
 
-  // Hard mode: keep the map concealed while a round is in progress, then
-  // reveal it once the round is over so the answer is still visible.
+  // Hard mode: collapse the whole map area while a round is in progress (so
+  // the input rises to the top — handy on mobile), then reveal it once the
+  // round is over so the answer is still visible.
   function applyMapVisibility() {
     const hide = hideMapToggle.checked && !(state && state.over);
-    mapWrap.classList.toggle("map-hidden", hide);
+    document.body.classList.toggle("map-hidden", hide);
   }
 
   function newRound() {
@@ -204,6 +209,7 @@
       found: new Set(),
       over: false,
       wrong: 0,
+      wrongSet: new Set(), // distinct countries already counted as a miss
     };
     targetEl.textContent = COUNTRIES[code].name;
     input.value = "";
@@ -221,21 +227,36 @@
 
   function submitGuess(code) {
     if (!state || state.over) return;
-    if (state.neighbors.includes(code) && !state.found.has(code)) {
-      state.found.add(code);
+
+    // A correct neighbor: progress. Re-picking an already-found one (or the
+    // target country itself) is benign — clear the box, no penalty.
+    if (state.neighbors.includes(code)) {
+      if (!state.found.has(code)) {
+        state.found.add(code);
+        paint();
+        placeLabels();
+        renderSidebar();
+        if (state.found.size === state.neighbors.length) endRound(false);
+      }
       input.value = "";
       closeSuggestions();
-      paint();
-      placeLabels();
-      renderSidebar();
-      if (state.found.size === state.neighbors.length) endRound(false);
-    } else {
-      // wrong / duplicate -> count the miss and shake feedback
+      return;
+    }
+    if (code === state.code) {
+      input.value = "";
+      closeSuggestions();
+      return;
+    }
+
+    // Genuinely wrong country -> shake. Count it once per distinct country so
+    // repeating the same wrong guess doesn't stack up misses.
+    if (!state.wrongSet.has(code)) {
+      state.wrongSet.add(code);
       state.wrong++;
       renderStats();
-      aside.classList.add("flash-wrong");
-      setTimeout(() => aside.classList.remove("flash-wrong"), 320);
     }
+    aside.classList.add("flash-wrong");
+    setTimeout(() => aside.classList.remove("flash-wrong"), 320);
   }
 
   function endRound(gaveUp) {
@@ -300,8 +321,9 @@
   nextBtn.addEventListener("click", newRound);
   hideMapToggle.addEventListener("change", () => {
     applyMapVisibility();
-    // Re-place labels: showing the map again needs valid screen coords.
-    if (state) placeLabels();
+    // Revealing the map again needs a fresh frame (and labels) for the now
+    // laid-out container; while hidden these no-op via their size guards.
+    if (state) frameRegion();
   });
   window.addEventListener("resize", () => { if (state) frameRegion(); });
 
