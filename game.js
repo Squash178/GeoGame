@@ -296,7 +296,11 @@
       const d = document.createElement("div");
       d.textContent = m.name;
       if (i === activeIdx) d.classList.add("active");
-      d.addEventListener("mousedown", (e) => { e.preventDefault(); submitGuess(m.code); });
+      // Use pointerdown so a tap registers on touch devices too (mousedown
+      // alone is unreliable on mobile). preventDefault keeps the input
+      // focused and stops the synthesized mouse/click from firing twice.
+      const pick = (e) => { e.preventDefault(); submitGuess(m.code); };
+      d.addEventListener("pointerdown", pick);
       sugg.appendChild(d);
     });
     sugg.classList.add("open");
